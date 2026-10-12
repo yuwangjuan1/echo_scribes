@@ -10,10 +10,11 @@ export const metadata: Metadata = {
 
 const BASE = `${API_BASE}/api/v1`;
 
-function Method({ method }: { method: 'GET' | 'POST' | 'DELETE' }) {
+function Method({ method }: { method: 'GET' | 'POST' | 'PUT' | 'DELETE' }) {
   const styles = {
     GET: 'bg-mint/10 text-mint ring-mint/25',
     POST: 'bg-accent/10 text-accent ring-accent/25',
+    PUT: 'bg-white/[0.06] text-paper ring-white/25',
     DELETE: 'bg-rose/10 text-rose ring-rose/25',
   } as const;
   return (
@@ -25,7 +26,7 @@ function Method({ method }: { method: 'GET' | 'POST' | 'DELETE' }) {
 
 interface EndpointProps {
   id: string;
-  method: 'GET' | 'POST' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
   title: string;
   desc: string;
@@ -248,6 +249,24 @@ es.onmessage = (e) => {
               ['taskId', 'body · string', '已完成任务的 ID'],
               ['action', 'body · string', 'summary | keypoints | translate'],
               ['target', 'body · string', '可选，translate 的目标语言，默认 en'],
+            ]}
+          />
+        </Endpoint>
+
+        <Endpoint
+          id="cookies"
+          method="PUT"
+          path={`${BASE}/cookies`}
+          title="配置平台 Cookies"
+          desc="上传 Netscape 格式的 cookies.txt（抖音等要求登录态的平台需要，配置一次即可）。PUT 提交文件内容并保存到转写引擎目录，下次任务即刻生效；GET 查询配置状态；DELETE 清除配置。工作台失败引导卡片内置了可视化上传入口。"
+          sampleTitle="curl"
+          sample={`curl -X PUT ${BASE}/cookies \\
+  -H "Content-Type: application/json" \\
+  -d '{"content":"# Netscape HTTP Cookie File\\n.douyin.com\\tTRUE\\t/\\tTRUE\\t0\\tsid_tt\\t..."}'`}
+        >
+          <ParamTable
+            rows={[
+              ['content', 'body · string', 'cookies.txt 的完整文本内容（Netscape 格式，按 Tab 分隔）'],
             ]}
           />
         </Endpoint>

@@ -1,6 +1,7 @@
 import type { Insights, PlatformId, Task } from '../types.js';
 import { store } from '../store.js';
 import { getProvider } from '../providers/index.js';
+import { llm } from '../providers/llm.js';
 import { ProviderError } from '../providers/provider.js';
 import { templateFor } from '../lib/templates.js';
 import { sseBus } from './sse.js';
@@ -115,9 +116,30 @@ class TaskQueue {
         durationSec: result.durationSec,
       };
       if (task.aiEnhance) {
-        task.insights =
+        let insights =
           result.insights ??
           buildInsights(task.platform as PlatformId, task.title);
+        if (llm.enabled && !provider.isDemo && task.transcript.fullText.trim().length > 0) {
+          task.stage = 'AI 增强中';
+          task.progress = Math.max(task.progress, 94);
+          store.put(task);
+          sseBus.broadcastProgress(task);
+          try {
+            insights = await llm.enhanceInsights(
+              task.transcript.fullText,
+              task.platformLabel,
+              task.title,
+              signal,
+            );
+            task.insightEngine = llm.model;
+          } catch (err) {
+            if (signal.aborted) throw err;
+            console.warn(
+              `[queue] LLM 摘要失败，回退抽取式结果：${err instanceof Error ? err.message : String(err)}`,
+            );
+          }
+        }
+        task.insights = insights;
       }
       store.put(task);
       sseBus.broadcastCompleted(task);

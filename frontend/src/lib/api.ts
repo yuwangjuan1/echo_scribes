@@ -32,6 +32,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export interface CookiesStatus {
+  configured: boolean;
+  updatedAt?: string;
+  sizeBytes?: number;
+}
+
 export interface SseHandlers {
   onProgress?: (progress: number, stage: string) => void;
   onCompleted?: (task: Task) => void;
@@ -87,11 +93,23 @@ export const api = {
     return request('/api/v1/platforms');
   },
 
+  async cookiesStatus(): Promise<{ cookies: CookiesStatus }> {
+    return request('/api/v1/cookies');
+  },
+
+  async saveCookies(content: string): Promise<{ cookies: CookiesStatus }> {
+    return request('/api/v1/cookies', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+  },
+
   async pricing(): Promise<{ plans: PricingPlan[] }> {
     return request('/api/v1/pricing');
   },
 
-  async aiEnhance(taskId: string, action: 'summary' | 'keypoints' | 'translate', target?: string): Promise<AiEnhanceResult> {
+  async aiEnhance(taskId: string, action: 'summary' | 'keypoints' | 'translate' | 'agent', target?: string): Promise<AiEnhanceResult> {
     return request('/api/v1/ai/enhance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

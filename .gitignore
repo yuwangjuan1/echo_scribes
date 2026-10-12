@@ -23,3 +23,8 @@ backend/transcriber/last_result.json
 .DS_Store
 Thumbs.db
 desktop.ini
+
+.venv-teardown/
+teardown_out/
+.env.teardown
+.trae/

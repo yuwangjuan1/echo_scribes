@@ -20,6 +20,30 @@ export interface Insights {
   tags: string[];
 }
 
+export interface AgentStep {
+  tool: string;
+  args: Record<string, unknown>;
+  preview: string;
+  ms: number;
+}
+
+export interface AgentHighlight {
+  timecode: string;
+  quote: string;
+  reason: string;
+}
+
+export interface AgentReport {
+  model: string;
+  elapsedMs: number;
+  steps: AgentStep[];
+  title: string;
+  overview: string;
+  keypoints: string[];
+  tags: string[];
+  highlights: AgentHighlight[];
+}
+
 export interface Task {
   id: string;
   sourceType: 'link' | 'upload';
@@ -43,6 +67,8 @@ export interface Task {
   errorCode?: string;
   transcript?: Transcript;
   insights?: Insights;
+  insightEngine?: string;
+  agentReport?: AgentReport;
 }
 
 export interface UsageInfo {
@@ -82,7 +108,7 @@ export interface SseMessage {
 }
 
 export interface AiEnhanceResult {
-  action: 'summary' | 'keypoints' | 'translate';
+  action: 'summary' | 'keypoints' | 'translate' | 'agent';
   taskId: string;
   demo?: boolean;
   engine?: string;
@@ -91,6 +117,8 @@ export interface AiEnhanceResult {
   tags?: string[];
   keypoints?: string[];
   lang?: string;
+  target?: string;
   text?: string;
   note?: string;
+  agent?: AgentReport;
 }

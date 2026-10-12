@@ -13,7 +13,9 @@
 - **公众号文章视频**：直接解析 `mp.weixin.qq.com/s/...` 文章内嵌的视频
 - **多平台支持**：抖音、B站、小红书、YouTube、TikTok、快手、公众号、微博、Instagram、X 等 900+ 站点（yt-dlp）
 - **实时进度**：SSE 事件流推送阶段与百分比，并内置轮询兜底，弱网环境也能收敛
-- **AI 增强**：转写完成后自动产出摘要、编号要点、话题标签（基于真实文本提取，无需 LLM Key）
+- **AI 增强**：转写完成后自动产出摘要、编号要点、话题标签（本地抽取式零成本；配置 LLM Key 后升级为生成式）
+- **全文翻译**：接入文本大模型（智谱 / DeepSeek / OpenAI 兼容协议）后一键翻译全文，支持英语 / 日语 / 韩语 / 繁体中文
+- **Agent 分析**：LLM 自主决策调用工具（字幕检索 / 统计 / 高频词 / 时段原文），多轮推理产出带时间码证据的分析报告，推理轨迹全程可见
 - **多格式导出**：TXT / SRT / VTT / Markdown
 - **逐句复制**：点击单句即复制，自动携带时间戳
 - **额度系统**：免费试用分钟数可配置，402 语义拦截
@@ -129,6 +131,10 @@ Whisper 模型无需手动下载——首次转写时自动从 [hf-mirror](https
 | `WHISPER_COMPUTE` | `int8` | `int8`（CPU 推荐）/ `float16`（GPU 推荐） |
 | `OPENAI_API_KEY` | 空 | `PROVIDER=openai` 时必填 |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | OpenAI 兼容地址 |
+| `LLM_API_KEY` | 空 | 文本大模型 Key（可选）：配置后 AI 摘要升级为生成式，并解锁全文翻译 |
+| `LLM_BASE_URL` | `https://open.bigmodel.cn/api/paas/v4` | OpenAI 兼容 chat/completions 地址（智谱 / DeepSeek / Kimi / OpenAI） |
+| `LLM_MODEL` | `glm-4-flash` | 文本模型名 |
+| `LLM_TIMEOUT_MS` | `60000` | LLM 请求超时（毫秒） |
 | `FREE_MINUTES` | `10` | 免费试用额度（分钟） |
 
 ### 前端 `frontend/.env.local`
@@ -154,6 +160,18 @@ Whisper 模型无需手动下载——首次转写时自动从 [hf-mirror](https
 `PROVIDER=mock`，返回模板文案，零依赖，用于前端联调或演示。
 
 > 三个引擎实现同一 `TranscriptionProvider` 接口（见 `backend/src/providers/provider.ts`），业务代码无需改动即可切换。
+
+---
+
+## 🤖 文本 LLM 增强（可选）
+
+在 `backend/.env` 配置 `LLM_API_KEY` 即可启用（兼容 OpenAI `chat/completions` 协议，智谱 / DeepSeek / Kimi / OpenAI 均可）：
+
+- **生成式摘要**：AI 摘要从本地词频抽取式升级为 LLM 生成式（标题 / 概述 / 要点 / 标签更精准），LLM 调用失败自动回退抽取式结果，任务不中断
+- **全文翻译**：任务详情页新增「翻译」入口，支持英语 / 日语 / 韩语 / 繁体中文，译文可一键复制
+- **Agent 分析**：任务详情页「Agent 分析」按钮触发工具调用循环——LLM 自主决定调用 `search_transcript` / `transcript_stats` / `get_time_range` / `top_keywords` 哪些工具、调用几次（最多 6 轮），精彩片段必须引用工具返回的真实时间码与原文，最终产出含证据的报告并持久化到任务（`reasoning trace` 可展开查看每一步工具调用）
+
+不配置 Key 时一切照旧：抽取式摘要照常可用，翻译接口返回 501 并提示配置方法。演示引擎（mock）不消耗 LLM tokens。
 
 ---
 
@@ -187,9 +205,11 @@ Whisper 模型无需手动下载——首次转写时自动从 [hf-mirror](https
 | GET | `/api/v1/tasks/:id` | 任务详情 |
 | DELETE | `/api/v1/tasks/:id` | 删除任务（释放额度） |
 | GET | `/api/v1/tasks/:id/events` | SSE 实时进度 |
+| GET / PUT / DELETE | `/api/v1/cookies` | 平台 Cookies 配置（状态 / 上传 / 清除） |
 | GET | `/api/v1/usage` | 额度使用情况 |
 | GET | `/api/v1/health` | 引擎健康状态 |
 | GET | `/api/v1/export/:id/:format` | 导出 TXT / SRT / VTT / MD |
+| POST | `/api/v1/ai/enhance` | AI 增强：`summary` / `keypoints` / `translate` |
 
 详见站内 `/docs` 页面（含可复制的 curl 示例）。
 

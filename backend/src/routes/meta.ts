@@ -3,6 +3,7 @@ import { PLATFORMS } from '../lib/links.js';
 import { store } from '../store.js';
 import { getProvider } from '../providers/index.js';
 import { FREE_MINUTES } from '../config.js';
+import { cookiesStatus, saveCookies, deleteCookies } from '../lib/cookies.js';
 import type { PricingPlan } from '../types.js';
 
 export const metaRouter = Router();
@@ -61,7 +62,30 @@ metaRouter.get('/usage', (_req, res) => {
 
 metaRouter.get('/health', (_req, res) => {
   const { provider } = getProvider();
-  res.json({ ok: true, provider: provider.name, demo: provider.isDemo, ts: Date.now() });
+  res.json({
+    ok: true,
+    provider: provider.name,
+    demo: provider.isDemo,
+    cookiesConfigured: cookiesStatus().configured,
+    ts: Date.now(),
+  });
+});
+
+metaRouter.get('/cookies', (_req, res) => {
+  res.json({ cookies: cookiesStatus() });
+});
+
+metaRouter.put('/cookies', (req, res) => {
+  const content = (req.body as { content?: string } | undefined)?.content ?? '';
+  const cookies = saveCookies(content);
+  console.log('[cookies] cookies.txt 已更新，下次转写任务即刻生效');
+  res.json({ cookies });
+});
+
+metaRouter.delete('/cookies', (_req, res) => {
+  const removed = deleteCookies();
+  if (removed) console.log('[cookies] cookies.txt 已清除');
+  res.json({ cookies: cookiesStatus(), removed });
 });
 
 export { PRICING };

@@ -1,6 +1,8 @@
 'use client';
 
-import { AlertTriangle, RotateCcw, LifeBuoy } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, RotateCcw, LifeBuoy, Cookie, FileUp, Loader2, CheckCircle2 } from 'lucide-react';
+import { api, type CookiesStatus } from '@/lib/api';
 
 interface Advice {
   title: string;
@@ -17,8 +19,8 @@ const ADVICE: Record<string, Advice> = {
     steps: [
       '用 Chrome / Edge 安装扩展「Get cookies.txt LOCALLY」',
       '浏览器访问 douyin.com（无需登录账号）',
-      '点击扩展图标导出 cookies.txt，放到 backend/transcriber/ 目录',
-      '回到这里重新提交即可',
+      '点击扩展图标导出 cookies.txt，在下方直接上传',
+      '配置完成后点击「重新提交」即可',
     ],
     retryable: true,
   },
@@ -120,6 +122,8 @@ export default function ErrorAdvice({
             </ol>
           )}
 
+          {code === 'cookies_required' && <CookiesSetup />}
+
           {(advice.retryable && onRetry) || advice.helpLink ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {advice.retryable && onRetry && (
@@ -147,6 +151,124 @@ export default function ErrorAdvice({
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CookiesSetup() {
+  const [status, setStatus] = useState<CookiesStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .cookiesStatus()
+      .then((res) => alive && setStatus(res.cookies))
+      .catch(() => alive && setStatus({ configured: false }));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const save = async (content: string) => {
+    setBusy(true);
+    setError('');
+    try {
+      const res = await api.saveCookies(content);
+      setStatus(res.cookies);
+      setPasteOpen(false);
+      setPasteText('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败，请重试');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPickFile = async (file: File) => {
+    const text = await file.text();
+    await save(text);
+  };
+
+  if (status?.configured) {
+    return (
+      <div className="mt-3 flex items-center gap-2 rounded-md border border-mint/25 bg-mint/[0.06] px-3 py-2">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-mint" />
+        <p className="text-xs text-mist-dim">
+          Cookies 已配置
+          {status.updatedAt && (
+            <span className="text-mist-faint">（{new Date(status.updatedAt).toLocaleString('zh-CN')}）</span>
+          )}
+          ，点击下方「重新提交」即可转写。
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-md border border-white/10 bg-black/20 p-3">
+      <div className="flex items-center gap-2">
+        <Cookie className="h-3.5 w-3.5 shrink-0 text-accent" />
+        <p className="text-xs font-medium text-mist">在此配置 Cookies</p>
+        {busy && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-mist-faint" />}
+      </div>
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".txt"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void onPickFile(file);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-xs text-mist transition-colors hover:border-white/30 hover:text-paper disabled:opacity-50"
+        >
+          <FileUp className="h-3 w-3" />
+          上传 cookies.txt
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setPasteOpen((v) => !v)}
+          className="text-xs text-mist-dim underline-offset-2 transition-colors hover:text-paper hover:underline"
+        >
+          {pasteOpen ? '收起粘贴框' : '或粘贴文件内容'}
+        </button>
+      </div>
+
+      {pasteOpen && (
+        <div className="mt-2.5">
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder="# Netscape HTTP Cookie File&#10;.douyin.com	TRUE	/	TRUE	0	cookie_name	value"
+            rows={4}
+            className="w-full resize-y rounded-md border border-white/10 bg-black/30 px-2.5 py-2 font-mono text-[11px] leading-relaxed text-mist placeholder:text-mist-faint focus:border-white/25 focus:outline-none"
+          />
+          <button
+            type="button"
+            disabled={busy || !pasteText.trim()}
+            onClick={() => void save(pasteText)}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-xs text-mist transition-colors hover:border-white/30 hover:text-paper disabled:opacity-40"
+          >
+            保存配置
+          </button>
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-xs leading-relaxed text-rose">{error}</p>}
     </div>
   );
 }

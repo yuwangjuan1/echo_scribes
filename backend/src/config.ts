@@ -10,6 +10,10 @@ const DEFAULTS = {
   maxUploadMb: 100,
   maxBatch: 100,
   concurrency: 2,
+  llmKey: '',
+  llmBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+  llmModel: 'glm-4-flash',
+  llmTimeoutMs: 60000,
 };
 
 function num(value: string | undefined, fallback: number): number {
@@ -24,6 +28,12 @@ export const config = {
   openai: {
     apiKey: process.env.OPENAI_API_KEY ?? DEFAULTS.openaiKey,
     baseUrl: process.env.OPENAI_BASE_URL ?? DEFAULTS.openaiBaseUrl,
+  },
+  llm: {
+    apiKey: process.env.LLM_API_KEY ?? DEFAULTS.llmKey,
+    baseUrl: (process.env.LLM_BASE_URL ?? DEFAULTS.llmBaseUrl).replace(/\/+$/, ''),
+    model: process.env.LLM_MODEL ?? DEFAULTS.llmModel,
+    timeoutMs: num(process.env.LLM_TIMEOUT_MS, DEFAULTS.llmTimeoutMs),
   },
   pythonBin: process.env.PYTHON_BIN ?? DEFAULTS.pythonBin,
   whisper: {

@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { store } from '../store.js';
+import { llm } from '../providers/llm.js';
+import { runAgent } from '../services/agent.js';
 import type { AiAction } from '../types.js';
 
 export const aiRouter = Router();
 
-aiRouter.post('/enhance', (req, res) => {
+aiRouter.post('/enhance', async (req, res) => {
   const { taskId, action, target } = (req.body ?? {}) as {
     taskId?: string;
     action?: AiAction;
@@ -26,13 +28,62 @@ aiRouter.post('/enhance', (req, res) => {
     return;
   }
 
+  if (action === 'translate') {
+    if (!llm.enabled) {
+      res.status(501).json({
+        error:
+          '翻译需要文本大模型支持：请在 backend/.env 配置 LLM_API_KEY（智谱 / DeepSeek / OpenAI 均可）后重启服务',
+      });
+      return;
+    }
+    const targetLang = typeof target === 'string' && target.trim() ? target.trim() : '英语';
+    try {
+      const text = await llm.translate(task.transcript.fullText, targetLang);
+      res.json({
+        action,
+        taskId,
+        engine: llm.model,
+        target: targetLang,
+        text,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(502).json({ error: `翻译失败：${message}` });
+    }
+    return;
+  }
+
+  if (action === 'agent') {
+    if (!llm.enabled) {
+      res.status(501).json({
+        error:
+          'Agent 分析需要文本大模型支持：请在 backend/.env 配置 LLM_API_KEY（智谱 / DeepSeek / OpenAI 均可）后重启服务',
+      });
+      return;
+    }
+    try {
+      const report = await runAgent({
+        transcript: task.transcript,
+        platformLabel: task.platformLabel,
+        title: task.title,
+      });
+      task.agentReport = report;
+      store.put(task);
+      res.json({ action, taskId, engine: report.model, agent: report });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(502).json({ error: `Agent 分析失败：${message}` });
+    }
+    return;
+  }
+
   const insights = task.insights;
   if (!insights) {
     res.status(409).json({ error: '该任务创建时未开启 AI 增强，可在控制台重新提交并勾选' });
     return;
   }
 
-  const engine = task.engine ?? 'demo-engine';
+  const engine = task.insightEngine ?? task.engine ?? 'demo-engine';
 
   if (action === 'summary') {
     res.json({
@@ -54,13 +105,6 @@ aiRouter.post('/enhance', (req, res) => {
       demo: task.engine === undefined,
       engine,
       keypoints: insights.keypoints,
-    });
-    return;
-  }
-
-  if (action === 'translate') {
-    res.status(501).json({
-      error: '翻译需要接入大语言模型（在 .env 配置 PROVIDER=openai 或后续接入 LLM Key 后可用），当前本地引擎暂不支持该动作',
     });
     return;
   }

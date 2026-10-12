@@ -37,6 +37,30 @@ export interface Insights {
   tags: string[];
 }
 
+export interface AgentStep {
+  tool: string;
+  args: Record<string, unknown>;
+  preview: string;
+  ms: number;
+}
+
+export interface AgentHighlight {
+  timecode: string;
+  quote: string;
+  reason: string;
+}
+
+export interface AgentReport {
+  model: string;
+  elapsedMs: number;
+  steps: AgentStep[];
+  title: string;
+  overview: string;
+  keypoints: string[];
+  tags: string[];
+  highlights: AgentHighlight[];
+}
+
 export interface Task {
   id: string;
   sourceType: SourceType;
@@ -60,6 +84,8 @@ export interface Task {
   errorCode?: string;
   transcript?: Transcript;
   insights?: Insights;
+  insightEngine?: string;
+  agentReport?: AgentReport;
 }
 
 export interface UsageInfo {
@@ -88,7 +114,7 @@ export interface PricingPlan {
   highlight?: boolean;
 }
 
-export type AiAction = 'summary' | 'keypoints' | 'translate';
+export type AiAction = 'summary' | 'keypoints' | 'translate' | 'agent';
 
 export interface SubmitLinksBody {
   links: string[] | string;
