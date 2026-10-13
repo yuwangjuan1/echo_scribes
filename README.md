@@ -2,7 +2,9 @@
 
 > 视频转文字在线工具。粘贴链接或上传音视频，秒级生成带时间轴的完整文案，自动产出摘要、要点与话题标签，支持 TXT / SRT / VTT / Markdown 多格式导出。
 
-对标 [videosays.cn](https://videosays.cn) 并做差异化：**前后端彻底分离**、**本地 Whisper 推理零 API 成本**、**公众号文章视频提取**、**结构化错误引导**。
+核心差异化：**前后端彻底分离**、**本地 Whisper 推理零 API 成本**、**公众号文章视频提取**、**结构化错误引导**。
+
+![EchoScribe 工作台](docs/screenshot-workbench.png)
 
 ---
 
@@ -52,7 +54,7 @@
 ## 📁 目录结构
 
 ```
-videosays/
+echo-scribe/
 ├── frontend/                # 纯前端（端口 3000）
 │   ├── src/
 │   │   ├── app/             # Next.js App Router 页面
