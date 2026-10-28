@@ -1,0 +1,18 @@
+# Render 一键蓝图：声稿后端（mock 演示引擎）
+# 部署：Render 控制台 → New + → Blueprint → 选择本仓库即可
+services:
+  - type: web
+    name: echoscribe-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PROVIDER
+        value: mock
+      - key: NODE_VERSION
+        value: "20"
+      - key: CORS_ORIGIN
+        value: "*"

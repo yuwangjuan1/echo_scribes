@@ -1,0 +1,10 @@
+# Netlify 配置：声稿前端（静态导出）
+[build]
+  command = "cd frontend && npm run build"
+  publish = "frontend/out"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # 指向 Render 后端；若 Render 实际分配的域名不同（名称被占用会加后缀），
+  # 在 Netlify 站点设置 → Environment variables 里覆盖 NEXT_PUBLIC_API_BASE_URL 后重新部署
+  NEXT_PUBLIC_API_BASE_URL = "https://echoscribe-backend.onrender.com"
